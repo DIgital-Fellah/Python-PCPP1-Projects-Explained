@@ -1,0 +1,77 @@
+# Import necessary libraries
+# scapy for capturing and analyzing network packets
+import scapy.all as scapy
+# Counter from collections module to count occurrences of items
+from collections import Counter
+# matplotlib for plotting charts
+import matplotlib.pyplot as plt
+
+# PacketAnalyzer class for processing captured packets
+class PacketAnalyzer:
+    def __init__(self):
+        """
+        Initialize the PacketAnalyzer class.
+        Initialize lists and dictionaries to store captured packets,
+        protocol counts, and IP address counts.
+        """
+        self.packets = []  # List to store captured packets
+        self.protocol_counts = {}  # Dictionary to store protocol counts
+        self.ip_counts = {}  # Dictionary to store IP address counts
+
+    def capture_packets(self, interface, duration):
+        """
+        Captures packets from the specified interface for a given duration.
+        Uses scapy's sniff function to capture packets.
+        
+        :param interface: Network interface to capture packets from (e.g., 'eth0').
+        :param duration: Duration (in seconds) to capture packets.
+        """
+        # Capture packets for the specified duration
+        self.packets = scapy.sniff(iface=interface, count=0, duration=duration)
+        # Print the number of captured packets
+        print(f"Captured {len(self.packets)} packets.")
+
+    def analyze_packets(self):
+        """
+        Analyzes captured packets and gathers information about protocols and IP addresses.
+        Updates protocol_counts and ip_counts with the collected data.
+        """
+        # Count the occurrences of each protocol in the captured packets
+        self.protocol_counts = Counter(packet[scapy.IP].proto for packet in self.packets)
+        # Count the occurrences of each source-destination IP pair in the captured packets
+        self.ip_counts = Counter((packet[scapy.IP].src, packet[scapy.IP].dst) for packet in self.packets)
+
+    def display_protocol_distribution(self):
+        """
+        Displays a pie chart of the distribution of protocols used in the captured traffic.
+        Uses matplotlib to create and show the pie chart.
+        """
+        # Extract protocol labels and their corresponding counts
+        protocol_labels = self.protocol_counts.keys()
+        protocol_values = self.protocol_counts.values()
+        # Create a pie chart with the collected protocol data
+        plt.pie(protocol_values, labels=protocol_labels, autopct="%1.1f%%")
+        # Set the title of the pie chart
+        plt.title("Protocol Distribution")
+        # Display the pie chart
+        plt.show()
+
+    def identify_potential_threats(self):
+        """
+        (Placeholder function) Identify suspicious patterns or frequent communication with known malicious IPs.
+        To be implemented with logic for threat detection based on packet analysis.
+        """
+        # Print a message indicating that threat identification is not implemented yet
+        print("Threat identification logic not yet implemented.")
+
+# Example usage of PacketAnalyzer class
+# Create an instance of PacketAnalyzer
+analyzer = PacketAnalyzer()
+# Capture packets from interface 'eth0' for 10 seconds
+analyzer.capture_packets(interface="eth0", duration=10)
+# Analyze the captured packets to gather protocol and IP address information
+analyzer.analyze_packets()
+# Display a pie chart of protocol distribution in the captured traffic
+analyzer.display_protocol_distribution()
+# Placeholder for identifying potential threats (not implemented)
+analyzer.identify_potential_threats()
