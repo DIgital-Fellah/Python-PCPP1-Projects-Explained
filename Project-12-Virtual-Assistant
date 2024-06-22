@@ -1,0 +1,67 @@
+# Import necessary libraries
+import speech_recognition as sr  # Library for speech recognition
+import pyttsx3  # Library for text-to-speech conversion
+import tkinter as tk  # Library for creating graphical user interfaces
+from datetime import datetime  # Library for handling date and time
+
+# Initialize recognizer and text-to-speech engine
+recognizer = sr.Recognizer()  # Creates an instance of the speech recognizer
+engine = pyttsx3.init()  # Initializes the text-to-speech engine
+
+# Define functions for speaking and listening
+def speak(text):
+    """Speaks the given text using the text-to-speech engine."""
+    engine.say(text)  # Queue the text to be spoken
+    engine.runAndWait()  # Blocks while processing all the currently queued commands
+
+def listen():
+    """Listens for user input using the microphone and returns the recognized text."""
+    with sr.Microphone() as source:  # Use the microphone as the audio source
+        print("Listening...")  # Print a message indicating that the program is listening
+        audio = recognizer.listen(source)  # Listen for audio input from the microphone
+    try:
+        text = recognizer.recognize_google(audio)  # Recognize speech using Google Speech Recognition
+        print("You said:", text)  # Print the recognized text
+        return text.lower()  # Convert the text to lowercase for easier comparison
+    except sr.UnknownValueError:  # Handle the exception if speech is unintelligible
+        speak("Sorry, I could not understand that. Please try again.")  # Speak an error message
+        return None  # Return None if speech was not recognized
+
+# Create the main window for the virtual assistant
+window = tk.Tk()  # Create an instance of the Tkinter window
+window.title("Virtual Assistant")  # Set the title of the window
+
+# Define a function to handle user input and perform actions
+def handle_input():
+    """Retrieves user input from the text box or microphone and performs actions based on the text."""
+    # Get user input from the text box if available, otherwise listen for voice input
+    user_input = entry.get().lower() if entry.get() else listen()
+    if user_input:  # Proceed if user input is not None
+        entry.delete(0, tk.END)  # Clear the text box for next input
+
+        # Basic actions based on user input (can be extended with more functionalities)
+        if "time" in user_input:  # Check if the user asked for the time
+            current_time = datetime.now().strftime("%H:%M:%S")  # Get the current time in HH:MM:SS format
+            speak(f"The current time is {current_time}")  # Speak the current time
+        elif "open" in user_input and "website" in user_input:  # Check if the user asked to open a website
+            website = user_input.split("open website ")[1]  # Extract the website name from user input
+            # Note: Opening websites is not implemented here for simplicity
+            print(f"Opening website: {website}")  # Print the website name
+        else:
+            speak("Sorry, I can't assist you with that yet. But I'm always learning!")  # Speak a fallback message
+
+# Create a text box for user input
+entry = tk.Entry(window, width=50)  # Create a text entry widget with specified width
+entry.pack(padx=10, pady=10)  # Add padding around the text entry widget and pack it into the window
+
+# Create a button to trigger the handle_input function
+button = tk.Button(window, text="Speak or Type", command=handle_input)  # Create a button widget
+button.pack(padx=10, pady=10)  # Add padding around the button widget and pack it into the window
+
+# Welcome message
+speak("Hello! I'm your virtual assistant. How can I help you today?")  # Speak a welcome message
+
+# Run the main event loop
+window.mainloop()  # Enter the main event loop, allowing the window to remain open and responsive
+
+# Indicate the end of the code 
