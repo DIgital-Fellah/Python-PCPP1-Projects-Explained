@@ -1,0 +1,84 @@
+# Node class representing a server in the distributed file system
+class Node:
+    def __init__(self, server_id, address, port):
+        # Initialize node with a unique server ID, address, and port
+        self.server_id = server_id
+        self.address = address
+        self.port = port
+        self.files = {}  # Dictionary to store local file data
+
+    # Function to store a file chunk on the node
+    def store_chunk(self, filename, chunk_data, chunk_id):
+        # If the file is not already in the node's storage, add it
+        if filename not in self.files:
+            self.files[filename] = {}
+        # Store the chunk data with its chunk ID
+        self.files[filename][chunk_id] = chunk_data
+        # Print a message confirming that the chunk has been stored
+        print(f"Node {self.server_id}: Stored chunk {chunk_id} of {filename}")
+
+    # Function to retrieve a file chunk from the node
+    def retrieve_chunk(self, filename, chunk_id):
+        # Check if the file and chunk exist in the node's storage
+        if filename in self.files and chunk_id in self.files[filename]:
+            # Return the chunk data if found
+            return self.files[filename][chunk_id]
+        else:
+            # Return None if the chunk is not found
+            return None
+
+# Client class representing a user interacting with the DFS
+class Client:
+    def __init__(self, server_list):
+        # Initialize client with a list of available nodes
+        self.server_list = server_list
+
+    # Function to upload a file to the DFS
+    def upload_file(self, filename, filepath):
+        # Read the entire file into memory
+        with open(filepath, "rb") as f:
+            file_data = f.read()
+        chunk_size = 1024  # Define chunk size for file splitting (1 KB)
+
+        # Split file into chunks of defined chunk size
+        chunks = [file_data[i:i + chunk_size] for i in range(0, len(file_data), chunk_size)]
+
+        # Distribute chunks across available nodes using round-robin assignment
+        for i, chunk in enumerate(chunks):
+            server = self.server_list[i % len(self.server_list)]
+            server.store_chunk(filename, chunk, i)
+
+    # Function to download a file from the DFS
+    def download_file(self, filename):
+        chunks = []  # List to collect retrieved file chunks
+        for i, server in enumerate(self.server_list):
+            # Try to retrieve each chunk from the nodes
+            chunk = server.retrieve_chunk(filename, i)
+            if chunk:
+                # Append the retrieved chunk to the list if found
+                chunks.append(chunk)
+            else:
+                # Print an error message and terminate if any chunk is missing
+                print(f"Failed to retrieve chunk {i} of {filename}")
+                break
+
+        # If no chunks are retrieved, the file is not found
+        if len(chunks) == 0:
+            print(f"File {filename} not found on any server")
+            return
+
+        # Write the retrieved chunks to a file
+        with open(filename, "wb") as f:
+            for chunk in chunks:
+                f.write(chunk)
+        # Print a message confirming that the file has been downloaded
+        print(f"File {filename} downloaded successfully")
+
+# Example usage
+server1 = Node(1, "127.0.0.1", 8000)  # Create the first node
+server2 = Node(2, "127.0.0.1", 8001)  # Create the second node
+server_list = [server1, server2]  # List of nodes
+
+client = Client(server_list)  # Create the client with the list of nodes
+client.upload_file("test.txt", "path/to/file.txt")  # Upload the file to the DFS
+client.download_file("test.txt")  # Download the file from the DFS
