@@ -1,0 +1,90 @@
+# Import necessary libraries
+import pandas as pd  # Pandas for data manipulation and analysis
+from flask import Flask, render_template  # Flask for web application framework
+import plotly.express as px  # Plotly for creating interactive plots
+
+# Define a base class for data sources
+class DataSource:
+    def __init__(self):
+        self.data = None  # Initialize data attribute to None
+
+    def get_data(self):
+        # Method to be implemented by subclasses for fetching data
+        raise NotImplementedError("Subclasses must implement get_data method")
+
+# Example subclass for CSV data sources
+class CSVDataSource(DataSource):
+    def __init__(self, filepath):
+        super().__init__()  # Call the constructor of the base class
+        self.filepath = filepath  # Store the filepath of the CSV file
+
+    def get_data(self):
+        # Read data from CSV file using pandas
+        self.data = pd.read_csv(self.filepath)
+        return self.data
+
+# Example subclass for API data sources
+class APIDataSource(DataSource):
+    def __init__(self, url):
+        super().__init__()  # Call the constructor of the base class
+        self.url = url  # Store the URL of the API endpoint
+
+    def get_data(self):
+        # Logic to fetch data from the API should be implemented here
+        # For example:
+        # import requests
+        # response = requests.get(self.url)  # Make an API request
+        # self.data = pd.json_loads(response.content)  # Parse the JSON response
+        return self.data
+
+# Create an instance of the Flask application
+app = Flask(__name__)
+
+# Define the route for the dashboard
+@app.route("/")
+def dashboard():
+    # Get data from the chosen data source
+    data_source = CSVDataSource("sample_data.csv")  # Create an instance of CSVDataSource with the filepath
+    data = data_source.get_data()  # Fetch the data
+
+    # Create a bar chart using Plotly
+    fig1 = px.bar(data, x="category", y="value", title="Sample Bar Chart")
+
+    # Create a line chart using Plotly
+    fig2 = px.line(data, x="date", y="metric", title="Sample Line Chart")
+
+    # Render the HTML template with the data and chart JSONs
+    return render_template("dashboard.html", data=data.to_json(), fig1=fig1.to_json(), fig2=fig2.to_json())
+
+# Main block to run the Flask application
+if __name__ == "__main__":
+    app.run(debug=True)  # Run the app in debug mode
+
+# Template file (dashboard.html - create a separate file with this content)
+# <!DOCTYPE html>
+# <html>
+# <head>
+#     <title>Dashboard</title>
+#     <!-- Include Plotly.js library -->
+#     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+# </head>
+# <body>
+#     <h1>Dashboard</h1>
+#     <!-- Div for the bar chart -->
+#     <div id="bar-chart"></div>
+#     <!-- Div for the line chart -->
+#     <div id="line-chart"></div>
+#     <script>
+#         // Parse the JSON data and charts from the Flask route
+#         var data = JSON.parse('{{ data | safe }}');
+#         var fig1 = JSON.parse('{{ fig1 | safe }}');
+#         var fig2 = JSON.parse('{{ fig2 | safe }}');
+#
+#         // Render the bar chart
+#         Plotly.newPlot('bar-chart', fig1.data, fig1.layout);
+#
+#         // Render the line chart
+#         Plotly.newPlot('line-chart', fig2.data, fig2.layout);
+#     </script>
+# </body>
+# </html>
