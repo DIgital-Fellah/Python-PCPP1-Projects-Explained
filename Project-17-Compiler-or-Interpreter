@@ -1,0 +1,146 @@
+# This code implements a simple interpreter for a custom language
+# with basic arithmetic operations and variable assignments.
+
+# Define a class to represent tokens
+class Token:
+    def __init__(self, type, value):
+        self.type = type  # The type of the token (e.g., "INTEGER", "IDENTIFIER", "OPERATOR", etc.)
+        self.value = value  # The value of the token (e.g., 123, "x", "+", etc.)
+
+# Define a class to perform lexical analysis
+class Lexer:
+    def __init__(self, code):
+        self.code = code  # The input code to be tokenized
+        self.current_char = None  # The current character being processed
+        self.advance()  # Initialize by advancing to the first character
+
+    # Method to advance to the next character
+    def advance(self):
+        self.current_char = self.code.pop(0) if self.code else None  # Move to the next character or set to None if at the end
+
+    # Method to generate the next token
+    def get_next_token(self):
+        while self.current_char:  # Loop until the end of the input code
+            if self.current_char.isspace():
+                # Skip whitespace
+                self.advance()
+            elif self.current_char.isdigit():
+                # Handle integer numbers
+                number = ""
+                while self.current_char and self.current_char.isdigit():
+                    number += self.current_char
+                    self.advance()
+                return Token("INTEGER", int(number))  # Return an integer token
+            elif self.current_char.isalpha():
+                # Handle identifiers (variables)
+                identifier = ""
+                while self.current_char and self.current_char.isalnum():
+                    identifier += self.current_char
+                    self.advance()
+                return Token("IDENTIFIER", identifier)  # Return an identifier token
+            elif self.current_char in "+-*/":
+                # Handle operators
+                op = self.current_char
+                self.advance()
+                return Token("OPERATOR", op)  # Return an operator token
+            elif self.current_char == '=':
+                # Handle assignment and comparison operators
+                if self.peek() == '=':
+                    self.advance()
+                    self.advance()
+                    return Token("COMPARISON", "==")  # Return a comparison token
+                else:
+                    self.advance()
+                    return Token("ASSIGN", "=")  # Return an assignment token
+            else:
+                # Raise an error for unexpected characters
+                raise SyntaxError("Unexpected character: " + self.current_char)
+        return Token("EOF", None)  # Return an EOF token at the end of the input
+
+    # Method to peek at the next character without advancing
+    def peek(self):
+        return self.code[0] if self.code else None  # Return the next character or None if at the end
+
+# Define a class to interpret the tokens
+class Interpreter:
+    def __init__(self, code):
+        self.lexer = Lexer(code.split())  # Create a lexer with the input code split into tokens
+        self.current_token = self.lexer.get_next_token()  # Get the first token
+
+    # Method to get the next token
+    def get_next_token(self):
+        self.current_token = self.lexer.get_next_token()  # Advance to the next token
+
+    # Method to consume the current token if it matches the expected type
+    def eat(self, token_type):
+        if self.current_token.type == token_type:
+            self.get_next_token()  # Consume the current token and get the next one
+        else:
+            raise SyntaxError("Expected " + token_type + " got " + self.current_token.type)  # Raise an error if the token type does not match
+
+    # Method to process the entire program
+    def program(self):
+        while self.current_token.type != "EOF":
+            self.statement()  # Process each statement until the end of the file
+
+    # Method to process a statement
+    def statement(self):
+        if self.current_token.type == "IDENTIFIER":
+            self.assign_statement()  # Process an assignment statement if the token is an identifier
+        else:
+            raise SyntaxError("Invalid statement")  # Raise an error for invalid statements
+
+    # Method to process an assignment statement
+    def assign_statement(self):
+        name = self.current_token.value  # Get the variable name
+        self.eat("IDENTIFIER")  # Consume the identifier token
+        self.eat("ASSIGN")  # Consume the assignment token
+        self.expr()  # Process the expression on the right-hand side of the assignment
+        # Store the value in a symbol table (not implemented here for simplicity)
+
+    # Method to process an expression
+    def expr(self):
+        self.term()  # Process the first term in the expression
+        while self.current_token.type in "+-":
+            op = self.current_token.value  # Get the operator
+            self.eat("OPERATOR")  # Consume the operator token
+            self.term()  # Process the next term
+            # Perform the operation based on the operator (not implemented here for simplicity)
+
+    # Method to process a term
+    def term(self):
+        self.factor()  # Process the first factor in the term
+        while self.current_token.type in "*/":
+            op = self.current_token.value  # Get the operator
+            self.eat("OPERATOR")  # Consume the operator token
+            self.factor()  # Process the next factor
+            # Perform the operation based on the operator (not implemented here for simplicity)
+
+    # Method to process a factor
+    def factor(self):
+        if self.current_token.type == "INTEGER":
+            value = self.current_token.value  # Get the integer value
+            self.eat("INTEGER")  # Consume the integer token
+            # Use the value (not implemented here for simplicity)
+        elif self.current_token.type == "IDENTIFIER":
+            # Retrieve the value from the symbol table (not implemented here for simplicity)
+            self.eat("IDENTIFIER")  # Consume the identifier token
+        else:
+            raise SyntaxError("Invalid factor")  # Raise an error for invalid factors
+
+# Example usage
+code = """
+x = 5
+y = 10
+z = x + y
+print(z)
+"""
+
+interpreter = Interpreter(code)  # Create an interpreter with the input code
+interpreter.program()  # Process the entire program
+
+# The above code defines a simple interpreter that can handle variable assignments and arithmetic operations.
+# The interpreter uses a lexer to tokenize the input code and then processes the tokens to execute the program.
+# This implementation does not include a symbol table or actual arithmetic operation execution for simplicity.
+# It demonstrates the structure and basic functionality of a custom language interpreter.
+OVER
