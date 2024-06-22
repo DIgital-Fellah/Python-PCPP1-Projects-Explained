@@ -1,0 +1,119 @@
+# Import necessary libraries for GUI, threading, web scraping, and CSV handling
+import tkinter as tk
+from tkinter import ttk
+import threading
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+# Define a base class for general scraper functionality
+class BaseScraper:
+    def __init__(self, url, target_data):
+        # Initialize with the URL to scrape and target data selectors
+        self.url = url
+        self.target_data = target_data
+
+    def scrape(self):
+        # Fetch the content of the website
+        response = requests.get(self.url)
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Extract data using the provided CSS selectors
+        extracted_data = []
+        for selector in self.target_data:
+            # Select all elements matching the selector and add to extracted_data
+            extracted_data.extend(soup.select(selector))
+
+        return extracted_data
+
+# Create a subclass for specific scraping tasks, such as scraping product details
+class ProductScraper(BaseScraper):
+    def __init__(self, url, target_data):
+        # Call the parent class constructor
+        super().__init__(url, target_data)
+
+    # Override scrape method to extract product details specifically
+    def scrape(self):
+        # Get the data using the parent class's scrape method
+        data = super().scrape()
+        products = []
+        for item in data:
+            # Extract product name and price
+            product = {
+                "name": item.find("h3").text.strip(),
+                "price": item.find("span", class_="price").text.strip(),
+            }
+            products.append(product)
+        return products
+
+# Define the GUI class for user interaction
+class ScraperGUI(tk.Tk):
+    def __init__(self):
+        # Initialize the main window
+        super().__init__()
+        self.title("Web Scraper")  # Set window title
+        self.url_var = tk.StringVar()  # Variable to hold the URL input
+        self.output_var = tk.IntVar()  # Variable to hold the selected output format
+        self.init_gui()  # Initialize the GUI elements
+
+    def init_gui(self):
+        # URL entry field label
+        url_label = ttk.Label(self, text="Enter URL:")
+        url_label.pack(pady=5)  # Add padding for better layout
+        # URL entry field
+        url_entry = ttk.Entry(self, textvariable=self.url_var)
+        url_entry.pack(pady=5)
+
+        # Output format selection label
+        output_label = ttk.Label(self, text="Output Format:")
+        output_label.pack(pady=5)
+        # Frame to hold radio buttons for output format
+        output_frame = ttk.Frame(self)
+        output_frame.pack()
+        # Radio button for CSV output
+        csv_radio = ttk.Radiobutton(output_frame, text="CSV", variable=self.output_var, value=0)
+        csv_radio.pack()
+        # Additional output options (e.g., database) can be added here
+
+        # Button to start scraping
+        scrape_button = ttk.Button(self, text="Scrape", command=self.start_scraping)
+        scrape_button.pack(pady=10)
+
+    def start_scraping(self):
+        # Get the URL and output format from the user inputs
+        url = self.url_var.get()
+        output_format = self.output_var.get()
+
+        # Define target data selectors based on website structure (example)
+        target_data = ["div.product-item"]
+
+        # Create a scraper instance for products
+        scraper = ProductScraper(url, target_data)
+        # Run the scraping in a separate thread to keep the GUI responsive
+        scrape_thread = threading.Thread(target=self.handle_scraping, args=(scraper, output_format))
+        scrape_thread.start()
+
+    def handle_scraping(self, scraper, output_format):
+        # Scrape the data using the scraper instance
+        extracted_data = scraper.scrape()
+
+        # Save the scraped data in the selected format
+        if output_format == 0:
+            self.save_to_csv(extracted_data)
+        # Logic for additional output formats can be added here
+
+        # Display a message when scraping is complete
+        tk.messagebox.showinfo("Scrape Complete", "Data scraping finished!")
+
+    def save_to_csv(self, data):
+        # Save the scraped data to a CSV file
+        with open("scraped_data.csv", "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=data[0].keys())  # Create a CSV writer object
+            writer.writeheader()  # Write the header row with field names
+            writer.writerows(data)  # Write the data rows
+
+# Create and run the GUI application
+if __name__ == "__main__":
+    # Instantiate the GUI and start the main loop
+    gui = ScraperGUI()
+    gui.mainloop()
