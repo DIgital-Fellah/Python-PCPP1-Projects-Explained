@@ -1,0 +1,69 @@
+# Import necessary modules from the tkinter library for GUI components
+from tkinter import Tk, Label, Entry, Button, Text
+import requests  # Import the requests module for network interaction (potentially with a blockchain API)
+
+# Define a Block class to represent a block on the blockchain
+class Block:
+    def __init__(self, index, timestamp, data, previous_hash):
+        # Initialize the block with an index, timestamp, data, and the hash of the previous block
+        self.index = index
+        self.timestamp = timestamp
+        self.data = data
+        self.previous_hash = previous_hash
+
+# Define a BlockchainExplorer class for the main application logic
+class BlockchainExplorer:
+    def __init__(self, master):
+        # Initialize the main application window
+        self.master = master
+        self.master.title("Blockchain Explorer")  # Set the window title
+
+        # Create an input field for the user to enter a block hash or address
+        self.search_bar = Entry(master)
+        self.search_bar.pack(pady=10)  # Add some padding around the input field
+
+        # Create a search button that triggers the block/transaction lookup when clicked
+        self.search_button = Button(master, text="Search", command=self.search)
+        self.search_button.pack()  # Add the button to the window
+
+        # Create a text area to display the retrieved information
+        self.info_text = Text(master)
+        self.info_text.pack()  # Add the text area to the window
+
+    # Define the search function to handle the search button click event
+    def search(self):
+        # Retrieve the search term (block hash or address) from the input field
+        search_term = self.search_bar.get()
+
+        # Make an API request to retrieve blockchain data for the given search term
+        # Note: Replace "https://api.example.com/block/{search_term}" with the actual API URL
+        response = requests.get(f"https://api.example.com/block/{search_term}")
+        
+        # Parse the JSON response data
+        data = response.json()
+
+        # Clear any existing text in the info_text area
+        self.info_text.delete("1.0", "end")
+        
+        # Check if the data was successfully retrieved
+        if data:
+            # Extract and format the block data for display
+            block_data = f"Index: {data['index']}\n"\
+                         f"Timestamp: {data['timestamp']}\n"\
+                         f"Previous Hash: {data['previous_hash']}\n"\
+                         f"Data: {data['data']}"
+            
+            # Insert the formatted block data into the text area
+            self.info_text.insert("end", block_data)
+        else:
+            # If no data was found, display a message indicating no results
+            self.info_text.insert("end", "No results found.")
+
+# Create the main application window (root) using Tkinter
+root = Tk()
+
+# Initialize an instance of the BlockchainExplorer class with the root window
+explorer = BlockchainExplorer(root)
+
+# Run the Tkinter main event loop to display the window and handle user interactions
+root.mainloop()
