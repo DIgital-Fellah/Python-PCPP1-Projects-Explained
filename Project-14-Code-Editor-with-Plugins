@@ -1,0 +1,101 @@
+import tkinter as tk
+from abc import ABC, abstractmethod
+
+# Abstract base class for plugins.
+class Plugin(ABC):
+    """Abstract base class for plugins."""
+    
+    @abstractmethod
+    def activate(self, editor):
+        """
+        Activates the plugin and provides access to the editor instance.
+        This method must be implemented by all subclasses.
+        """
+        pass
+
+# Main code editor class inheriting from Tkinter's Tk class.
+class CodeEditor(tk.Tk):
+    """Simple code editor with plugin architecture."""
+
+    def __init__(self):
+        # Initialize the parent class (tk.Tk)
+        super().__init__()
+
+        # Set the window title
+        self.title("My Code Editor")
+
+        # Set the window size
+        self.geometry("800x600")
+
+        # Create a Text widget for code editing
+        self.text_widget = tk.Text(self, font=("monospace", 12))
+        self.text_widget.pack(fill=tk.BOTH, expand=True)  # Fill the window and expand with resizing
+
+        # Create a menu bar
+        self.menu_bar = tk.Menu(self)
+        self.config(menu=self.menu_bar)  # Set the menu bar as the window's menu
+
+        # Create a File menu
+        self.file_menu = tk.Menu(self.menu_bar, tearoff=False)
+        self.file_menu.add_command(label="New", command=self.new_file)  # Add New file option
+        self.file_menu.add_command(label="Open", command=self.open_file)  # Add Open file option
+        self.file_menu.add_command(label="Save", command=self.save_file)  # Add Save file option
+        self.file_menu.add_separator()  # Add a separator line
+        self.file_menu.add_command(label="Exit", command=self.quit)  # Add Exit option
+        self.menu_bar.add_cascade(label="File", menu=self.file_menu)  # Add File menu to the menu bar
+
+        # Create a Plugins menu (dynamically populated)
+        self.plugin_menu = tk.Menu(self.menu_bar, tearoff=False)
+        self.menu_bar.add_cascade(label="Plugins", menu=self.plugin_menu)  # Add Plugins menu to the menu bar
+
+        # Dictionary to hold registered plugins
+        self.plugins = {}
+
+        # Placeholder for loading plugins from a directory
+        # self.load_plugins("plugins")
+
+    # Method to create a new file (clears the text widget)
+    def new_file(self):
+        self.text_widget.delete(1.0, tk.END)
+
+    # Method to open a file (not implemented)
+    def open_file(self):
+        # Implement file opening logic
+        pass
+
+    # Method to save a file (not implemented)
+    def save_file(self):
+        # Implement file saving logic
+        pass
+
+    # Method to register a plugin with the editor
+    def register_plugin(self, plugin_name, plugin_class):
+        """Registers a plugin with the editor."""
+        self.plugins[plugin_name] = plugin_class
+        self.add_plugin_menu_item(plugin_name)  # Add plugin to the Plugins menu
+
+    # Method to add a menu item for a registered plugin
+    def add_plugin_menu_item(self, plugin_name):
+        """Adds a menu item for the specified plugin."""
+
+        # Function to activate the plugin when its menu item is selected
+        def activate_plugin():
+            if plugin_name in self.plugins:
+                plugin = self.plugins[plugin_name](self)
+                plugin.activate()
+
+        # Add the plugin to the Plugins menu with the activate function as the command
+        self.plugin_menu.add_command(label=plugin_name, command=activate_plugin)
+
+# Example plugin class (commented out if not used)
+# class LinterPlugin(Plugin):
+#     def activate(self, editor):
+#         # Implement linting functionality
+#         print("Linting code...")
+
+# Main program entry point
+if __name__ == "__main__":
+    editor = CodeEditor()  # Create an instance of the CodeEditor
+    # Register example plugin (uncomment if using LinterPlugin)
+    # editor.register_plugin("Linter", LinterPlugin)
+    editor.mainloop()  # Start the Tkinter main loop
