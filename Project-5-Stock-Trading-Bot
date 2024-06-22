@@ -1,0 +1,145 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import yfinance as yf  # Consider using a more robust data source (discussed later)
+import time
+
+# Define a class for the Stock Trading Bot
+class StockTradingBot:
+
+    def __init__(self, ticker, api_key=None):
+        """
+        Initialize the StockTradingBot with a ticker symbol and an optional API key.
+        
+        Parameters:
+        - ticker (str): The stock ticker symbol to trade.
+        - api_key (str): Optional API key for accessing stock data.
+        """
+        self.ticker = ticker
+        self.model = None  # Initialize model as None
+        self.api_key = api_key  # Store API key (if provided)
+
+    def download_data(self, start_date, end_date):
+        """
+        Download historical stock data for the given ticker between the specified dates.
+        
+        Parameters:
+        - start_date (str): The start date for the data download in 'YYYY-MM-DD' format.
+        - end_date (str): The end date for the data download in 'YYYY-MM-DD' format.
+        
+        Returns:
+        - data (pd.DataFrame): DataFrame containing the historical stock data.
+        """
+        
+        if self.api_key:
+            # Example using yfinance with API key (replace with preferred provider)
+            data = yf.download(self.ticker, start=start_date, end=end_date, auto_adjust=True, precompute=True)
+        else:
+            # Example using web scraping (replace with a compliant method)
+            # Note: Web scraping might violate usage terms. Consider a compliant method.
+            print("Warning: Web scraping might violate usage terms. Consider a compliant method.")
+            data = None
+
+        return data
+
+    def train_model(self, data):
+        """
+        Train a linear regression model using historical stock data.
+        
+        Parameters:
+        - data (pd.DataFrame): DataFrame containing historical stock data with 'Close' as the target variable.
+        """
+        # Prepare features by dropping the 'Close' column, which we will predict
+        features = data.drop('Close', axis=1)
+        # The target variable is the 'Close' price
+        target = data['Close']
+
+        # Create a linear regression model
+        self.model = LinearRegression()
+        # Train the model using the features and target variable
+        self.model.fit(features, target)
+
+    def predict(self, new_data):
+        """
+        Make a prediction using the trained model.
+        
+        Parameters:
+        - new_data (pd.DataFrame): DataFrame containing the new data for prediction.
+        
+        Returns:
+        - prediction (float): The predicted stock price.
+        """
+        # Check if the model is trained
+        if self.model is None:
+            print("Error: Model not trained yet. Please call train_model() first.")
+            return None
+
+        # Make a prediction and return the first value (since we are predicting for one instance)
+        return self.model.predict(new_data)[0]
+
+    def simulate_trade(self, data, capital, buy_threshold=0.01, sell_threshold=-0.01):
+        """
+        Simulate trading based on model predictions.
+        
+        Parameters:
+        - data (pd.DataFrame): DataFrame containing historical stock data.
+        - capital (float): The initial capital available for trading.
+        - buy_threshold (float): The threshold for buying stocks.
+        - sell_threshold (float): The threshold for selling stocks.
+        """
+        # Variables to keep track of trading state
+        in_position = False  # Track if we currently hold any stock
+        total_shares = 0  # Track the total shares bought
+        transactions = []  # List to store transactions for review
+
+        # Iterate through each row in the data (each day of stock data)
+        for index, row in data.iterrows():
+            # Prepare the new data for prediction (drop the 'Close' column)
+            new_data = pd.DataFrame([row.drop('Close')]).values.reshape(1, -1)
+            # Make a prediction
+            prediction = self.predict(new_data)
+            # Get the actual closing price for that day
+            price = row['Close']
+
+            # If not in position and the prediction exceeds the buy threshold, buy stock
+            if not in_position and prediction > buy_threshold:
+                # Calculate the number of shares we can buy with the available capital
+                shares = int(capital / price)
+                total_shares += shares
+                in_position = True  # Update position state
+                transactions.append(f"Buy {shares} shares at ${price:.2f}")
+
+            # If in position and the prediction falls below the sell threshold, sell stock
+            elif in_position and prediction < sell_threshold:
+                transactions.append(f"Sell {total_shares} shares at ${price:.2f}")
+                total_shares = 0
+                in_position = False  # Update position state
+
+        # If still in position, sell remaining shares at the end
+        if in_position:
+            transactions.append(f"Sell remaining {total_shares} shares at ${data['Close'].iloc[-1]:.2f}")
+
+        # Print out all transactions for review
+        print("Simulated Transactions:")
+        for transaction in transactions:
+            print(transaction)
+
+# Example usage
+if __name__ == "__main__":
+    # Define parameters for the bot
+    ticker = "AAPL"  # Stock ticker symbol
+    start_date = "2023-01-01"  # Start date for data download
+    end_date = "2024-06-08"  # End date for data download
+    capital = 10000  # Initial capital for trading
+
+    # Create an instance of the StockTradingBot
+    bot = StockTradingBot(ticker)
+    # Download historical stock data
+    data = bot.download_data(start_date, end_date)
+
+    # If data is successfully downloaded, proceed with training and simulation
+    if data is not None:
+        bot.train_model(data)  # Train the model with historical data
+        bot.simulate_trade(data.copy(), capital)  # Simulate trading with a copy of the data
+    else:
+        print("Failed to download data.")  # Print error message if data download fails
