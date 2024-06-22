@@ -1,0 +1,99 @@
+# Base class for plugins
+class Plugin:
+  def __init__(self, player):
+    # Initialize the plugin with a reference to the music player
+    self.player = player
+
+  # Define a method for each functionality the plugin provides
+  # This is a placeholder method to be overridden by subclasses
+  def run(self):
+    pass
+
+
+# Music player class
+class MusicPlayer:
+  def __init__(self):
+    # Initialize with no song loaded
+    self.current_song = None
+    # Initialize an empty list to hold plugins
+    self.plugins = []
+
+  def load_song(self, filename):
+    # Load a song given its filename
+    # In a real implementation, an appropriate library (e.g., pygame) should be used to load the audio file
+    self.current_song = filename
+    # Notify all plugins about song change (optional)
+    for plugin in self.plugins:
+      # If plugins have a method to handle song change, call it
+      plugin.on_song_change(filename)
+
+  def play(self):
+    # Use a library to play the loaded song
+    pass
+
+  def pause(self):
+    # Use a library to pause playback
+    pass
+
+  def stop(self):
+    # Use a library to stop playback
+    pass
+
+  def add_plugin(self, plugin):
+    # Add a plugin to the list of plugins
+    self.plugins.append(plugin)
+
+
+# Example plugin - Visualizer
+class VisualizerPlugin(Plugin):
+  def run(self):
+    # Access audio data from player (if possible) and visualize it
+    # Placeholder for visualization logic
+    print("Visualizing music...")
+
+# Example plugin - LyricsFetcher (using web scraping)
+import requests
+from bs4 import BeautifulSoup
+
+class LyricsFetcherPlugin(Plugin):
+  def __init__(self, player, base_url="https://www.lyrics.com/"):
+    # Initialize the plugin with a reference to the music player and a base URL for lyrics
+    super().__init__(player)
+    self.base_url = base_url
+
+  def run(self):
+    # Check if a song is currently loaded in the player
+    if self.player.current_song:
+      # Extract artist and title from filename (or use metadata tags)
+      artist, title = self.player.current_song.split("-")
+      # Construct the URL to fetch lyrics
+      url = f"{self.base_url}/{artist}/{title}"
+      # Send a GET request to fetch the webpage
+      response = requests.get(url)
+      # Parse the webpage content using BeautifulSoup
+      soup = BeautifulSoup(response.content, "html.parser")
+      # Find the div containing the lyrics
+      lyrics_div = soup.find("div", id="lyric-container")
+      # If the lyrics are found, print them
+      if lyrics_div:
+        lyrics = lyrics_div.text.strip()
+        print(f"Lyrics for {title}:\n {lyrics}")
+      else:
+        # If lyrics are not found, print a message
+        print(f"Lyrics not found for {title}")
+
+# Example usage
+# Create an instance of MusicPlayer
+player = MusicPlayer()
+# Add the VisualizerPlugin to the player
+player.add_plugin(VisualizerPlugin(player))
+# Add the LyricsFetcherPlugin to the player
+player.add_plugin(LyricsFetcherPlugin(player))
+
+# Load a song into the player
+player.load_song("Beethoven-Eine_Kleine_Nachtmusik.mp3")
+# Play the loaded song
+player.play()
+
+# User interaction (play, pause, etc.) would be implemented here 
+# For example, user could use commands to play, pause, or stop the music
