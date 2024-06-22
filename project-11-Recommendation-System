@@ -1,0 +1,92 @@
+import pandas as pd  # Importing the pandas library for data manipulation
+from surprise import Reader, Dataset, SVDpp  # Importing necessary classes from the surprise library for collaborative filtering
+
+class MovieRecommender:
+    """
+    A class to represent a movie recommendation system using collaborative filtering (SVD++ algorithm).
+    """
+
+    def __init__(self):
+        """
+        Initializes the MovieRecommender class.
+        """
+        # Initialize a Reader object with the rating scale from 1 to 5
+        self.reader = Reader(rating_scale=(1, 5))
+        self.data = None  # Placeholder for the dataset
+        self.model = None  # Placeholder for the recommendation model
+
+    def load_data(self, filepath):
+        """
+        Loads user-movie rating data from a CSV file.
+
+        Args:
+            filepath (str): Path to the CSV file containing ratings.
+
+        Returns:
+            pandas.DataFrame: The loaded rating data.
+        """
+        # Load the ratings data from the CSV file
+        ratings = pd.read_csv(filepath)
+        # Convert the ratings DataFrame into a Surprise Dataset
+        self.data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], self.reader)
+
+    def train(self):
+        """
+        Trains the recommendation model using Singular Value Decomposition++ (SVD++).
+        """
+        # Initialize the SVD++ model with a learning rate of 0.01 and 20 iterations
+        self.model = SVDpp(learning_rate=0.01, n_epochs=20)
+        # Fit the model to the full training dataset
+        self.model.fit(self.data.build_full_trainset())
+
+    def recommend(self, user_id, num_recommendations=10):
+        """
+        Recommends movies for a given user based on their rating history.
+
+        Args:
+            user_id (int): The ID of the user for whom recommendations are generated.
+            num_recommendations (int, optional): The number of recommendations to return. Defaults to 10.
+
+        Returns:
+            list: A list of movie IDs with predicted ratings.
+        """
+        # Get all ratings by the user
+        user_ratings = self.data.df[self.data.df['userId'] == user_id]
+        # Extract the list of movie IDs that the user has already rated
+        user_rated_movies = user_ratings['movieId'].tolist()
+
+        # Predict ratings for all movies
+        predictions = [self.model.predict(user_id, movie_id) for movie_id in self.data.df['movieId'].unique()]
+
+        # Filter out movies the user has already rated
+        top_predictions = [pred for pred in predictions if pred.iid not in user_rated_movies]
+
+        # Sort predictions by estimated rating in descending order
+        top_predictions.sort(key=lambda x: x.est, reverse=True)
+
+        # Return the top N movie recommendations
+        return top_predictions[:num_recommendations]
+
+# Example usage
+if __name__ == "__main__":
+    # Instantiate the movie recommender class
+    movie_recommender = MovieRecommender()
+    
+    # Load data from the specified CSV file
+    movie_recommender.load_data("movie_ratings.csv")  # Replace with your data file path
+    
+    # Train the recommendation model
+    movie_recommender.train()
+
+    # Specify the user ID for whom to generate recommendations
+    user_id = 123  # Replace with user ID
+    
+    # Get the top movie recommendations for the user
+    recommendations = movie_recommender.recommend(user_id)
+
+    # Print the top N movie recommendations for the user
+    print(f"Top {len(recommendations)} movie recommendations for user {user_id}:")
+    for recommendation in recommendations:
+        print(f"- Movie ID: {recommendation.iid}, Predicted Rating: {recommendation.est:.2f}") 
+
+# OVER
