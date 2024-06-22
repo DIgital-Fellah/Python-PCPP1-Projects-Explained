@@ -1,0 +1,106 @@
+# Import libraries for code analysis
+import ast  # Abstract Syntax Tree module for parsing and processing Python source code
+import inspect  # Module for retrieving information about live objects (in this case, code objects)
+
+def analyze_code(code):
+    """
+    Analyzes Python code and identifies potential issues.
+    
+    Args:
+        code: A string containing the Python code to be analyzed.
+    
+    Returns:
+        A list of dictionaries, where each dictionary represents an issue found
+        in the code. Each dictionary contains the following keys:
+            - line: The line number where the issue is found.
+            - message: A description of the issue.
+            - suggestion: (Optional) A suggestion for improvement.
+    """
+    
+    # Parse the input code into an AST (Abstract Syntax Tree)
+    # The AST allows us to analyze the structure of the code programmatically
+    tree = ast.parse(code)
+    
+    # Initialize an empty list to store the issues found in the code
+    issues = []
+
+    # Define a function to check for long lines in the code
+    def check_long_lines(node):
+        """
+        Checks if a line of code exceeds the recommended character limit (80 characters).
+        
+        Args:
+            node: A node in the AST representing a line of code.
+        
+        Returns:
+            None. Issues are added to the 'issues' list if found.
+        """
+        # Check if the length of the line of code exceeds 80 characters
+        if len(code.splitlines()[node.lineno - 1]) > 80:
+            # Append an issue to the issues list if the line is too long
+            issues.append({
+                "line": node.lineno,
+                "message": "Line exceeds recommended character limit (80)",
+                "suggestion": "Refactor code to shorten the line."
+            })
+
+    # Define a function to check for unused variables in the code
+    def check_unused_variables(node):
+        """
+        Checks if there are any unused variables in the code.
+        
+        Args:
+            node: A node in the AST representing a code block.
+        
+        Returns:
+            None. Issues are added to the 'issues' list if found.
+        """
+        # Use inspect module to find used variables in the node
+        used_vars = set(inspect.getmembers(ast.NodeTransformer().visit(node)))
+        
+        # Iterate through the body of the node to find variable assignments
+        for name in node.body:
+            # Check if the node is an assignment and if the variable is not used
+            if isinstance(name, ast.Assign) and name.targets[0].id not in used_vars:
+                # Append an issue to the issues list if the variable is unused
+                issues.append({
+                    "line": name.lineno,
+                    "message": "Variable '{}' appears to be unused.".format(name.targets[0].id),
+                    "suggestion": "Remove unused variable or use it."
+                })
+
+    # Walk through all nodes in the AST and call the analysis functions on each node
+    for node in ast.walk(tree):
+        # Check each node for long lines
+        check_long_lines(node)
+        # Check each node for unused variables
+        check_unused_variables(node)
+
+    # Return the list of issues found in the code
+    return issues
+
+# Example usage of the analyze_code function
+# Here we define a sample code snippet to be analyzed
+code = """
+def my_function(x, y):
+    # This line is quite long and could be refactored
+    long_variable_name = x * y + very_descriptive_calculation(z)
+    return long_variable_name
+
+unused_var = 10  # This variable is not used
+"""
+
+# Analyze the sample code to find potential issues
+issues = analyze_code(code)
+
+# Print the identified issues
+if issues:
+    print("Potential issues found in the code:")
+    # Iterate through the list of issues and print each one
+    for issue in issues:
+        print(f"Line {issue['line']}: {issue['message']}")
+        if "suggestion" in issue:
+            # Print the suggestion if available
+            print(f"\tSuggestion: {issue['suggestion']}")
+else:
+    print("No issues found in the code! Great work!")
