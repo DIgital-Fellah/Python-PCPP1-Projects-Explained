@@ -1,0 +1,138 @@
+#CLIENT CODE
+# Import necessary libraries
+import socket
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+
+# Server address and port
+HOST = 'localhost'
+PORT = 5000
+
+# Function to generate RSA key pair (private and public keys)
+def generate_keys():
+    # Generate a new RSA key pair (2048 bits)
+    key_pair = RSA.generate(2048)
+    # Export the private key in PEM format
+    private_key = key_pair.exportKey('PEM')
+    # Export the public key in PEM format
+    public_key = key_pair.publickey().exportKey('PEM')
+    return private_key, public_key
+
+# Function to send data securely
+def send_data(sock, data):
+    # Receive the session key securely from the server
+    session_key = receive_key(sock)
+    # Create a new AES cipher object using the session key in CBC mode
+    cipher = AES.new(session_key, AES.MODE_CBC)
+    # Pad the data to be a multiple of 16 bytes (block size of AES)
+    padded_data = data + (b'\0' * (16 - len(data) % 16))
+    # Encrypt the padded data using the AES cipher
+    ciphertext = cipher.encrypt(padded_data)
+    # Send the encrypted data over the socket
+    sock.sendall(ciphertext)
+
+# Function to receive the session key securely
+def receive_key(sock):
+    # Generate a new RSA key pair (client side)
+    private_key, _ = generate_keys()
+    # Send the client's private key to the server (this is insecure and for demonstration only)
+    sock.sendall(private_key)
+    # Receive the encrypted session key from the server
+    received_data = sock.recv(1024)
+    # Decrypt the received session key using the client's private key
+    decrypted_data = RSA.importKey(private_key).decrypt(received_data)
+    return decrypted_data
+
+# Main function
+def main():
+    # Create a TCP/IP socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # Connect the socket to the server's address and port
+        s.connect((HOST, PORT))
+
+        # Get the file path from the user
+        file_path = input("Enter file path: ")
+        # Send the file path securely to the server
+        send_data(s, file_path.encode())
+
+        # Open the specified file for reading in binary mode
+        with open(file_path, "rb") as f:
+            # Read the contents of the file
+            file_data = f.read()
+            # Send the file data securely to the server
+            send_data(s, file_data)
+
+        print("File sent successfully!")
+
+# Entry point of the script
+if __name__ == "__main__":
+    main()
+
+#SERVER CODE
+# Import necessary libraries
+import socket
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+
+# Server address and port
+HOST = ''
+PORT = 5000
+
+# Function to generate RSA key pair (private and public keys)
+def generate_keys():
+    # Generate a new RSA key pair (2048 bits)
+    key_pair = RSA.generate(2048)
+    # Export the private key in PEM format
+    private_key = key_pair.exportKey('PEM')
+    # Export the public key in PEM format
+    public_key = key_pair.publickey().exportKey('PEM')
+    return private_key, public_key
+
+# Main function
+def main():
+    # Create a TCP/IP socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # Bind the socket to the server's address and port
+        s.bind((HOST, PORT))
+        # Listen for incoming connections (maximum 1 queued connection)
+        s.listen()
+        print("Server listening on port", PORT)
+
+        # Accept a connection from a client
+        conn, addr = s.accept()
+        with conn:
+            print(f"Connected by {addr}")
+
+            # Receive the client's public key (insecure, demonstration only)
+            client_public_key = conn.recv(1024)
+
+            # Generate the server's RSA key pair
+            private_key, public_key = generate_keys()
+
+            # Send the server's public key to the client
+            conn.sendall(public_key)
+
+            # Receive the encrypted file path from the client
+            received_data = conn.recv(1024)
+            # Decrypt the file path (for simplicity, assuming it's already decrypted)
+            file_path = received_data.decode()
+
+            # Generate a session key for AES encryption (replace with secure key generation)
+            session_key = b'your_strong_password'  # This should be generated securely
+
+            # Encrypt the session key with the client's public key and send it to the client
+            encrypted_key = RSA.importKey(client_public_key).encrypt(session_key, RSA. PKCS1_OAEP)
+            conn.sendall(encrypted_key)
+
+            # Receive the encrypted file data from the client
+            received_data = conn.recv(1024)
+            # Decrypt the file data (for simplicity, assuming it's already decrypted)
+            with open(file_path, "wb") as f:
+                # Write the received data to the file
+                f.write(received_data)
+
+            print("File received successfully!")
+
+# Entry point of the script
+if __name__ == "__main__":
+    main()
