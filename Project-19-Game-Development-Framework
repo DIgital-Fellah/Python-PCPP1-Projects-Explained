@@ -1,0 +1,97 @@
+import pygame  # Import the pygame module
+
+# Define the GameObject class
+class GameObject:
+    def __init__(self, x, y, width, height):
+        # Initialize the game object's position and size
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def update(self, dt):
+        # Update game object logic (e.g., movement, animation)
+        # This method should be overridden in child classes
+        pass
+
+    def draw(self, surface):
+        # Render the game object on the surface
+        pass
+
+
+# Define the Game class
+class Game:
+    def __init__(self, width, height, title):
+        # Initialize game properties: window dimensions and title
+        self.width = width
+        self.height = height
+        self.title = title
+        self.running = True  # Game loop control flag
+        self.objects = []  # List to store all game objects
+
+    def add_object(self, obj):
+        # Add a game object to the list
+        self.objects.append(obj)
+
+    def handle_events(self):
+        # Handle all events, such as keyboard and mouse input
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                # If the quit event is triggered, stop the game loop
+                self.running = False
+
+    def update(self, dt):
+        # Update all game objects
+        for obj in self.objects:
+            obj.update(dt)
+
+    def draw(self, surface):
+        # Clear the screen by filling it with black
+        surface.fill((0, 0, 0))  # Fill background with black (RGB color)
+        # Draw all game objects
+        for obj in self.objects:
+            obj.draw(surface)
+        pygame.display.flip()  # Update the display
+
+    def run(self):
+        # Main game loop
+        clock = pygame.time.Clock()  # Create a clock to control the frame rate
+        pygame.init()  # Initialize all pygame modules
+        screen = pygame.display.set_mode((self.width, self.height))  # Set up the game window
+        pygame.display.set_caption(self.title)  # Set the window title
+
+        # Run the game loop
+        while self.running:
+            dt = clock.tick(60) / 1000  # Delta time in seconds (60 FPS target)
+            self.handle_events()  # Handle input events
+            self.update(dt)  # Update game logic
+            self.draw(screen)  # Render the game objects
+
+        pygame.quit()  # Quit pygame when the loop ends
+
+
+# Define the Player class, a type of GameObject
+class Player(GameObject):
+    def __init__(self, x, y):
+        super().__init__(x, y, 32, 32)  # Initialize the player with position and size
+        self.speed = 100  # Player movement speed in pixels per second
+
+    def update(self, dt):
+        # Update the player's position based on keyboard input
+        keys = pygame.key.get_pressed()  # Get the state of all keyboard keys
+        if keys[pygame.K_LEFT]:
+            self.x -= self.speed * dt  # Move left
+        if keys[pygame.K_RIGHT]:
+            self.x += self.speed * dt  # Move right
+
+    def draw(self, surface):
+        # Draw the player as a white rectangle
+        pygame.draw.rect(surface, (255, 255, 255), (self.x, self.y, self.width, self.height))
+
+
+# Main block to start the game
+if __name__ == "__main__":
+    game = Game(640, 480, "Simple Game")  # Create a new game instance
+    player = Player(100, 200)  # Create a new player instance at position (100, 200)
+    game.add_object(player)  # Add the player to the game
+    game.run()  # Start the game loop
