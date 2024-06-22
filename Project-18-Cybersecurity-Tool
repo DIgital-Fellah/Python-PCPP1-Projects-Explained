@@ -1,0 +1,93 @@
+import socket  # Import the socket module to handle network connections
+import re  # Import the re module to handle regular expressions
+
+class VulnerabilityScanner:
+    """
+    This class scans a target host for common vulnerabilities based on port checks.
+    """
+
+    def __init__(self, target_host, target_port):
+        """
+        Initializes the scanner with the target host and port.
+        """
+        self.target_host = target_host  # The hostname or IP address of the target
+        self.target_port = target_port  # The port number to be scanned
+        self.vuln_data_file = "vulnerability_data.txt"  # File containing vulnerability information
+
+    def scan_port(self):
+        """
+        Attempts a connection to the target host and port.
+        
+        Returns True if the connection is successful, indicating the port is open.
+        Returns False if the connection is refused or an error occurs, indicating the port is closed.
+        """
+        try:
+            # Create a socket object with IPv4 addressing and TCP protocol
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Try to connect to the specified host and port
+            sock.connect((self.target_host, self.target_port))
+            # Close the socket after a successful connection
+            sock.close()
+            return True  # Port is open
+        except ConnectionRefusedError:
+            return False  # Port is closed
+        except Exception as e:
+            # Print any other connection errors
+            print(f"Error connecting to {self.target_host}:{self.target_port} - {e}")
+            return False
+
+    def check_vulnerability(self):
+        """
+        Checks for vulnerabilities based on open ports and loaded vulnerability data.
+        
+        This method first checks if the specified port is open. If the port is open,
+        it loads vulnerability data from a file and checks if the open port is associated
+        with any known vulnerabilities.
+        """
+        open_port = self.scan_port()  # Check if the port is open
+        if not open_port:
+            print(f"Port {self.target_port} is closed on {self.target_host}")
+            return
+
+        # Load vulnerability data from file (replace with actual data loading)
+        vuln_data = self.load_vulnerability_data()
+        # Iterate through each vulnerability entry
+        for vuln in vuln_data:
+            port = vuln.get("port")  # Get the port number from the vulnerability entry
+            description = vuln.get("description")  # Get the description of the vulnerability
+            # Check if the vulnerability entry's port matches the target port
+            if port == self.target_port:
+                print(f"Potential vulnerability found: {description} (Port {port})")
+
+    def load_vulnerability_data(self):
+        """
+        Loads vulnerability data from a file.
+        
+        This method reads a file containing vulnerability information and extracts
+        the port numbers and descriptions using regular expressions. It returns a list
+        of dictionaries where each dictionary represents a vulnerability.
+        """
+        vulnerabilities = []  # List to store vulnerability information
+        try:
+            # Open the vulnerability data file for reading
+            with open(self.vuln_data_file, "r") as f:
+                # Read each line in the file
+                for line in f:
+                    vuln_dict = {}  # Dictionary to store a single vulnerability entry
+                    # Use regular expression to extract port number and description
+                    match = re.search(r"port: (\d+).*description: (.*)", line)
+                    if match:
+                        # Extract and convert port number to integer
+                        vuln_dict["port"] = int(match.group(1))
+                        # Extract and strip any surrounding whitespace from the description
+                        vuln_dict["description"] = match.group(2).strip()
+                        # Add the vulnerability entry to the list
+                        vulnerabilities.append(vuln_dict)
+        except FileNotFoundError:
+            # Print an error message if the file is not found
+            print(f"Vulnerability data file '{self.vuln_data_file}' not found")
+        return vulnerabilities  # Return the list of vulnerabilities
+
+# Example usage
+scanner = VulnerabilityScanner("www.example.com", 80)  # Initialize the scanner with a target host and port
+scanner.check_vulnerability()  # Check for vulnerabilities on the specified port
