@@ -1,0 +1,103 @@
+from queue import Queue
+from threading import Thread
+
+class Task:
+    """
+    Represents a unit of work to be executed in parallel.
+    Each task has a name, a function to execute, and arguments for that function.
+    The result of the function execution is stored in the result attribute.
+    """
+    def __init__(self, name, function, args=()):
+        self.name = name  # Name of the task for identification
+        self.function = function  # Function to be executed
+        self.args = args  # Arguments for the function
+        self.result = None  # Placeholder for the result
+
+    def execute(self):
+        """
+        Executes the function with the provided arguments and stores the result.
+        """
+        self.result = self.function(*self.args)  # Execute function and store result
+
+class Worker(Thread):
+    """
+    Thread subclass that processes tasks from a shared queue.
+    Each worker continuously gets tasks from the task queue and executes them.
+    Once a task is executed, the result is put into the result queue.
+    """
+    def __init__(self, task_queue, result_queue):
+        super().__init__()
+        self.task_queue = task_queue  # Queue from which tasks are fetched
+        self.result_queue = result_queue  # Queue where results are stored
+        self.daemon = True  # Ensures thread terminates with the main program
+
+    def run(self):
+        """
+        Continuously processes tasks from the task queue.
+        Terminates when it encounters a None task.
+        """
+        while True:
+            task = self.task_queue.get()  # Get a task from the queue
+            if task is None:
+                break  # Exit loop if task is None
+            task.execute()  # Execute the task
+            self.result_queue.put(task)  # Put the completed task in the result queue
+
+class ParallelExecutor:
+    """
+    Manages task distribution and retrieval of results.
+    Initializes workers that process tasks from the task queue.
+    """
+    def __init__(self, num_workers):
+        self.task_queue = Queue()  # Queue for tasks to be executed
+        self.result_queue = Queue()  # Queue for storing results
+        self.workers = []  # List to keep track of worker threads
+        for _ in range(num_workers):
+            worker = Worker(self.task_queue, self.result_queue)  # Create a worker
+            worker.start()  # Start the worker thread
+            self.workers.append(worker)  # Add worker to the list
+
+    def submit_task(self, task):
+        """
+        Adds a task to the queue for parallel execution by workers.
+        """
+        self.task_queue.put(task)  # Put the task in the task queue
+
+    def get_results(self):
+        """
+        Retrieves results from completed tasks.
+        """
+        results = []
+        while not self.result_queue.empty():
+            results.append(self.result_queue.get().result)  # Get result from result queue
+        return results  # Return all results
+
+    def shutdown(self):
+        """
+        Signals workers to finish processing tasks and cleans up resources.
+        """
+        for _ in range(len(self.workers)):
+            self.task_queue.put(None)  # Add a None task for each worker to signal termination
+        for worker in self.workers:
+            worker.join()  # Wait for each worker to finish
+
+# Example usage
+def square(x):
+    """
+    Function to square a number. Used for demonstration purposes.
+    """
+    return x * x
+
+executor = ParallelExecutor(2)  # Create executor with 2 workers
+tasks = [Task(f"Task {i}", square, args=(i,)) for i in range(4)]  # Create a list of tasks
+
+# Submit each task to the executor
+for task in tasks:
+    executor.submit_task(task)
+
+results = executor.get_results()  # Retrieve results from completed tasks
+executor.shutdown()  # Shutdown the executor and workers
+
+# Print the results of each task
+for i, task in enumerate(tasks):
+    print(f"Result of {task.name}: {results[i]}")  # Output: Result of Task 0: 0, Result of Task 1: 1, etc.
