@@ -1,0 +1,97 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Define a class for the NLP Pipeline
+class NLPipeline:
+    
+    # Initialization method for the class
+    def __init__(self, task="sentiment_analysis"):
+        """
+        Initialize the NLP Pipeline
+        
+        Args:
+            task (str, optional): NLP task to perform. Defaults to "sentiment_analysis".
+        """
+        self.task = task  # Set the NLP task (default is sentiment analysis)
+        self.data = None  # Placeholder for the dataset
+        self.X_train = None  # Placeholder for training features
+        self.X_test = None  # Placeholder for testing features
+        self.y_train = None  # Placeholder for training labels
+        self.y_test = None  # Placeholder for testing labels
+        self.model = None  # Placeholder for the machine learning model
+        self.vectorizer = None  # Placeholder for the vectorizer
+
+    # Method to load data from a CSV file
+    def load_data(self, data_path, label_column="sentiment"):
+        """
+        Load data from a CSV file
+
+        Args:
+            data_path (str): Path to the CSV file
+            label_column (str, optional): Column containing sentiment labels. Defaults to "sentiment".
+        """
+        self.data = pd.read_csv(data_path)  # Read the CSV file into a DataFrame
+        self.X = self.data.drop(label_column, axis=1)  # Features are all columns except the label column
+        self.y = self.data[label_column]  # Labels are in the label column
+
+    # Method to preprocess text data
+    def preprocess_text(self):
+        """
+        Preprocess text data: lowercase, remove punctuation, etc.
+        """
+        # Apply text cleaning steps such as converting to lowercase and removing punctuation
+        self.X = self.X.apply(lambda x: x.lower().replace("[^a-zA-Z0-9 ]", ""))
+
+    # Method to convert text data into numerical features using TF-IDF
+    def vectorize_text(self):
+        """
+        Convert text data into numerical features using TF-IDF
+        """
+        self.vectorizer = TfidfVectorizer()  # Initialize the TF-IDF vectorizer
+        # Split the data into training and testing sets, and transform the text data into TF-IDF features
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.vectorizer.fit_transform(self.X), self.y, test_size=0.2
+        )
+
+    # Method to train a machine learning model for the NLP task
+    def train_model(self, model_name="LogisticRegression"):
+        """
+        Train a machine learning model for the NLP task
+
+        Args:
+            model_name (str, optional): Name of the model to train. Defaults to "LogisticRegression".
+        """
+        from sklearn.linear_model import LogisticRegression  # Import Logistic Regression model
+
+        self.model = LogisticRegression()  # Initialize the Logistic Regression model
+        self.model.fit(self.X_train, self.y_train)  # Train the model using the training data
+
+    # Method to predict sentiment or category for a new piece of text
+    def predict(self, text):
+        """
+        Predict sentiment or category for a new piece of text
+
+        Args:
+            text (str): Text to be processed and predicted
+
+        Returns:
+            str: Predicted sentiment or category label
+        """
+        text_vector = self.vectorizer.transform([text])  # Transform the input text to TF-IDF features
+        prediction = self.model.predict(text_vector)[0]  # Predict the label using the trained model
+        return prediction  # Return the predicted label
+
+# Example usage of the NLPipeline class
+pipeline = NLPipeline(task="sentiment_analysis")  # Create an instance of the NLPipeline class
+pipeline.load_data("sentiment_data.csv")  # Load the data from a CSV file (replace with your data path)
+pipeline.preprocess_text()  # Preprocess the text data
+pipeline.vectorize_text()  # Convert text data to numerical features
+pipeline.train_model()  # Train the machine learning model
+
+# Predict sentiment for a new sentence
+text = "This movie was absolutely terrible!"  # Input text to predict sentiment for
+prediction = pipeline.predict(text)  # Get the predicted sentiment
+print(f"Predicted sentiment: {prediction}")  # Print the predicted sentiment
+# OVER
