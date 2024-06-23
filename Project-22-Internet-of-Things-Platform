@@ -1,0 +1,108 @@
+# Import necessary libraries for socket communication and database operations
+import socket
+import sqlite3
+
+# Define a base class for IoT devices
+class IoTDevice:
+    def __init__(self, device_id, name):
+        """
+        Initialize the IoTDevice with a unique ID and a name.
+        
+        :param device_id: Unique identifier for the device
+        :param name: Name of the device
+        """
+        self.device_id = device_id  # Assign device ID
+        self.name = name  # Assign device name
+        self.data = {}  # Initialize an empty dictionary to store sensor data
+
+    def get_data(self):
+        """
+        Simulate the process of reading data from sensors.
+        Replace this with actual sensor data reading logic based on your specific hardware.
+        
+        :return: Dictionary containing sensor data
+        """
+        # Example sensor data (Replace with actual hardware reading logic)
+        self.data = {"temperature": 25.0, "humidity": 50}
+        return self.data
+
+    def __str__(self):
+        """
+        Return a string representation of the device, including its ID, name, and data.
+        
+        :return: String representation of the IoTDevice
+        """
+        return f"Device ID: {self.device_id}, Name: {self.name}, Data: {self.data}"
+
+# Define a function to create the database and necessary tables
+def create_db():
+    """
+    Create an SQLite database with tables for devices and their data if they do not already exist.
+    """
+    conn = sqlite3.connect("iot_data.db")  # Connect to the SQLite database
+    c = conn.cursor()  # Create a cursor object to interact with the database
+    # Create a table for devices if it does not exist
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS devices (
+            device_id TEXT PRIMARY KEY,  # Device ID is the primary key
+            name TEXT  # Device name
+        )"""
+    )
+    # Create a table for storing data collected from devices if it does not exist
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS data (
+            device_id TEXT REFERENCES devices(device_id),  # Foreign key referencing devices table
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,  # Timestamp of data collection
+            data TEXT  # Sensor data stored as text
+        )"""
+    )
+    conn.commit()  # Commit the transaction
+    conn.close()  # Close the database connection
+
+# Define a function to register a new device in the database
+def register_device(device_id, name):
+    """
+    Register a new IoT device by inserting its ID and name into the devices table.
+    
+    :param device_id: Unique identifier for the device
+    :param name: Name of the device
+    """
+    conn = sqlite3.connect("iot_data.db")  # Connect to the SQLite database
+    c = conn.cursor()  # Create a cursor object to interact with the database
+    # Insert the new device into the devices table
+    c.execute("INSERT INTO devices VALUES (?, ?)", (device_id, name))
+    conn.commit()  # Commit the transaction
+    conn.close()  # Close the database connection
+    print(f"Device {name} (ID: {device_id}) registered successfully!")  # Print confirmation
+
+# Define a function to collect data from a registered device
+def collect_data(device_id):
+    """
+    Collect data from a registered device by reading sensor data and storing it in the database.
+    
+    :param device_id: Unique identifier for the device
+    """
+    conn = sqlite3.connect("iot_data.db")  # Connect to the SQLite database
+    c = conn.cursor()  # Create a cursor object to interact with the database
+    # Retrieve the device from the database using its ID
+    c.execute("SELECT * FROM devices WHERE device_id=?", (device_id,))
+    device = c.fetchone()  # Fetch one result
+    if device:  # If the device is found
+        device = IoTDevice(device[0], device[1])  # Create an IoTDevice object
+        data = device.get_data()  # Get sensor data from the device
+        # Insert the collected data into the data table
+        c.execute("INSERT INTO data (device_id, data) VALUES (?, ?)", (device_id, str(data)))
+        conn.commit()  # Commit the transaction
+        print(f"Data collected from device {device.name} (ID: {device_id})")  # Print confirmation
+    else:
+        print(f"Device with ID {device_id} not found!")  # Print error if device is not found
+    conn.close()  # Close the database connection
+
+# Simulate device registration and data collection (for demo purposes)
+create_db()  # Create the database and tables
+register_device("ABC123", "Sensor Node 1")  # Register a new device
+collect_data("ABC123")  # Collect data from the registered device
+
+# Note: This is a basic example. In a real application, you would expand functions for remote control, GUI, and other features. 
+
+# OVER
