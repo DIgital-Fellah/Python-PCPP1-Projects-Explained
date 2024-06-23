@@ -1,0 +1,118 @@
+import socket
+import threading
+import pickle  # Importing pickle for serialization and deserialization
+
+class Task:
+    """
+    Represents a task to be distributed.
+    Each task contains a function and its arguments.
+    """
+    def __init__(self, function, args=()):
+        self.function = function  # The function to be executed
+        self.args = args  # The arguments for the function
+
+    def execute(self):
+        """
+        Executes the task with provided arguments.
+        Calls the function with the arguments and returns the result.
+        """
+        return self.function(*self.args)  # Execute and return the result
+
+    @staticmethod
+    def serialize(obj):
+        """
+        Serializes the object using pickle.
+        """
+        return pickle.dumps(obj)  # Convert the object to bytes
+
+    @staticmethod
+    def deserialize(data):
+        """
+        Deserializes the data back into an object using pickle.
+        """
+        return pickle.loads(data)  # Convert bytes back to object
+
+class Worker(threading.Thread):
+    """
+    Worker thread to execute tasks on a remote machine.
+    This class runs in its own thread to handle tasks concurrently.
+    """
+    def __init__(self, sock):
+        super().__init__()  # Initialize the parent class
+        self.sock = sock  # Socket for communication with master
+
+    def run(self):
+        """
+        The main method of the worker thread.
+        It receives tasks, executes them, and sends back the results.
+        """
+        while True:  # Run indefinitely to handle tasks
+            data = self.sock.recv(1024)  # Receive serialized task data (1024 bytes at a time)
+            if not data:  # If no data is received, exit the loop
+                break
+            task = Task.deserialize(data)  # Deserialize the received data into a Task object
+            result = task.execute()  # Execute the task
+            self.sock.sendall(Task.serialize(result))  # Send the result back to the master
+        self.sock.close()  # Close the socket after exiting the loop
+
+class Master:
+    """
+    Master node that distributes tasks to workers.
+    This class manages the distribution of tasks and communication with workers.
+    """
+    def __init__(self, port):
+        self.port = port  # Port on which the master node listens for connections
+        self.workers = []  # List to store worker addresses
+
+    def add_worker(self, worker_address):
+        """
+        Adds a worker machine to the pool.
+        """
+        self.workers.append(worker_address)  # Add the worker's address (IP and port) to the list
+
+    def distribute_task(self, task):
+        """
+        Distributes a task to a worker and retrieves the result.
+        Connects to the first worker in the list (for simplicity).
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:  # Create a new socket
+            sock.connect(self.workers[0])  # Connect to the first worker in the list
+            sock.sendall(Task.serialize(task))  # Send the serialized task to the worker
+            data = sock.recv(1024)  # Receive the result (1024 bytes at a time)
+            return Task.deserialize(data)  # Deserialize and return the result
+
+# Example usage
+def add(a, b):
+    """
+    Example function to add two numbers.
+    """
+    return a + b
+
+def factorial(n):
+    """
+    Example function to calculate the factorial of a number.
+    Uses recursion.
+    """
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+# Initialize the master node on port 5000
+master = Master(5000)
+
+# Add worker machines to the master node (replace with actual worker IPs and ports)
+master.add_worker(("192.168.0.1", 6000))
+
+# Submit an addition task to the master node
+result = master.distribute_task(Task(add, (5, 3)))  # Create and distribute a Task for adding 5 and 3
+print(f"Add result: {result}")  # Print the result of the addition task
+
+# Submit a factorial task to the master node
+result = master.distribute_task(Task(factorial, (5,)))  # Create and distribute a Task for calculating factorial of 5
+print(f"Factorial result: {result}")  # Print the result of the factorial task
+
+# (GUI implementation omitted for brevity)
+
+# The code demonstrates a simple distributed computing framework where a master node
+# distributes tasks to worker nodes. The workers execute the tasks and return the results.
