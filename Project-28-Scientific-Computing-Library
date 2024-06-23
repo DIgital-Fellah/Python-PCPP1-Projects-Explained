@@ -1,0 +1,145 @@
+"""
+This is a basic scientific computing library demonstrating Object Oriented Programming (OOP), 
+mathematical functions, and a simple command-line interface for user interaction.
+
+**Note:** This is a simplified example and does not cover all aspects of scientific computing.
+"""
+
+# Define a class for basic mathematical functions
+class MathFunctions:
+  """
+  A class containing basic mathematical functions.
+  """
+  def factorial(self, n):
+    """
+    Calculates the factorial of a non-negative integer.
+
+    Args:
+      n: The non-negative integer for which to calculate the factorial.
+
+    Returns:
+      The factorial of n. Raises a ValueError for negative input.
+    """
+    # Check if the input number is negative
+    if n < 0:
+      raise ValueError("Factorial is not defined for negative numbers.")
+    
+    # Initialize the result to 1 (since factorial of 0 is 1)
+    result = 1
+    
+    # Calculate the factorial by multiplying numbers from 1 to n
+    for i in range(1, n + 1):
+      result *= i
+    
+    return result
+
+  def fibonacci(self, n):
+    """
+    Calculates the nth Fibonacci number.
+
+    Args:
+      n: The index of the Fibonacci number to calculate.
+
+    Returns:
+      The nth Fibonacci number.
+    """
+    # Return None for negative indices as Fibonacci is not defined for them
+    if n < 0:
+      return None
+    
+    # Initialize the first two Fibonacci numbers
+    a, b = 0, 1
+    
+    # Calculate the nth Fibonacci number iteratively
+    for _ in range(n):
+      a, b = b, a + b
+    
+    return a
+
+
+# Define a class for simple data visualization
+class DataPlotter:
+  """
+  A simple class for creating basic text-based data visualizations.
+  """
+  def plot_bar(self, data):
+    """
+    Plots a bar chart for the given data.
+
+    Args:
+      data: A list of numerical values.
+    """
+    # Find the maximum value in the data to scale the bar lengths
+    max_value = max(data)
+    
+    # Scale factor for visualization
+    scale_factor = 10  # Adjust this for better visualization based on data range
+    
+    # Plot each data point as a bar of '*' characters
+    for value in data:
+      bar_length = int(value * scale_factor / max_value)
+      print("*" * bar_length)
+
+
+# Main function to provide a simple command-line interface
+def main():
+  """
+  The main function providing a simple command-line interface for user interaction.
+  """
+  # Create instances of MathFunctions and DataPlotter
+  math_functions = MathFunctions()
+  data_plotter = DataPlotter()
+
+  # Infinite loop to keep the program running until the user chooses to exit
+  while True:
+    # Print the menu options for the user
+    print("\nScientific Computing Library")
+    print("1. Factorial")
+    print("2. Fibonacci Sequence")
+    print("3. Plot Data (Bar Chart)")
+    print("4. Exit")
+    
+    # Prompt the user to enter their choice
+    choice = input("Enter your choice (1-4): ")
+
+    # Check the user's choice and call the corresponding function
+    if choice == '1':
+      try:
+        # Prompt the user for a non-negative integer to calculate its factorial
+        number = int(input("Enter a non-negative integer: "))
+        
+        # Calculate and display the factorial
+        result = math_functions.factorial(number)
+        print(f"The factorial of {number} is: {result}")
+      except ValueError as e:
+        # Handle invalid input (negative integer) and display an error message
+        print(e)
+    elif choice == '2':
+      # Prompt the user for the index of the Fibonacci number to calculate
+      number = int(input("Enter the index of the Fibonacci number: "))
+      
+      # Calculate and display the nth Fibonacci number
+      result = math_functions.fibonacci(number)
+      if result is not None:
+        print(f"The {number}th Fibonacci number is: {result}")
+      else:
+        # Handle negative indices and display an error message
+        print("Fibonacci sequence is not defined for negative indices.")
+    elif choice == '3':
+      # Prompt the user for a list of comma-separated data points to plot
+      data = [float(x) for x in input("Enter comma-separated data points: ").split(',')]
+      
+      # Plot the data as a bar chart
+      data_plotter.plot_bar(data)
+    elif choice == '4':
+      # Exit the program
+      print("Exiting...")
+      break
+    else:
+      # Handle invalid menu choice and prompt the user to try again
+      print("Invalid choice. Please try again.")
+
+
+# If this script is run directly, call the main function
+if __name__ == "__main__":
+  main()
