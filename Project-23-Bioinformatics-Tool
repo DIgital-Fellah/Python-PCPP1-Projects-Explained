@@ -1,0 +1,104 @@
+# Import the necessary libraries for data manipulation and visualization
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class BioinformaticsTool:
+    """
+    A basic bioinformatics tool for data analysis and visualization.
+
+    Attributes:
+        data (pd.DataFrame): Stores the loaded biological data.
+        data_type (str): Indicates the type of data loaded (e.g., "DNA", "Protein").
+    """
+
+    def __init__(self):
+        """
+        Initializes the BioinformaticsTool with no data and no data type.
+        """
+        self.data = None  # Placeholder for the data to be loaded
+        self.data_type = None  # Placeholder for the type of data to be loaded
+
+    def load_data(self, filename, data_type):
+        """
+        Loads biological data from a file.
+
+        Args:
+            filename (str): Path to the data file.
+            data_type (str): Type of data (e.g., "DNA", "Protein", "Expression").
+        """
+        self.data_type = data_type  # Set the type of data
+        # Load data according to its type
+        if data_type == "DNA":
+            self.data = pd.read_csv(filename)  # Load DNA data from a CSV file
+        elif data_type == "Expression":
+            self.data = pd.read_csv(filename, index_col=0)  # Load expression data with gene names as index
+        else:
+            raise ValueError("Unsupported data type:", data_type)  # Raise an error if data type is not supported
+
+    def get_summary_stats(self):
+        """
+        Calculates basic summary statistics for the loaded data.
+
+        Returns:
+            dict: Dictionary containing summary statistics relevant to the data type.
+        """
+        if self.data is None:
+            raise ValueError("No data loaded!")  # Ensure that data is loaded before calculating stats
+
+        stats = {}  # Dictionary to store the summary statistics
+        if self.data_type == "DNA":
+            # Calculate mean sequence length for DNA data
+            stats["Length (mean)"] = self.data["Sequence"].mean().round(2)
+            # Add more DNA-specific statistics if needed
+        elif self.data_type == "Expression":
+            # Calculate mean and standard deviation for expression data
+            stats["Mean Expression"] = self.data.mean().mean().round(2)
+            stats["Standard Deviation"] = self.data.std().mean().round(2)
+        # Add statistics for other data types if needed
+
+        return stats  # Return the calculated statistics
+
+    def plot_data(self, field_name):
+        """
+        Generates a basic visualization of the loaded data.
+
+        Args:
+            field_name (str): Name of the field to visualize (specific to data type).
+        """
+        if self.data is None:
+            raise ValueError("No data loaded!")  # Ensure that data is loaded before plotting
+
+        if self.data_type == "DNA":
+            # Visualize DNA sequence length distribution
+            self.data["Sequence"].value_counts().plot(kind="bar")
+            plt.title("DNA Sequence Length Distribution")
+            plt.xlabel("Sequence Length")
+            plt.ylabel("Count")
+            plt.show()
+        elif self.data_type == "Expression":
+            # Visualize gene expression heatmap
+            plt.matshow(self.data)
+            plt.title("Gene Expression Heatmap")
+            plt.colorbar(label="Expression Level")
+            plt.show()
+        # Add visualizations for other data types if needed
+
+# Example usage of the BioinformaticsTool class
+
+# Instantiate the tool
+tool = BioinformaticsTool()
+
+# Load DNA data from a file
+tool.load_data("dna_data.csv", "DNA")
+# Get and print summary statistics for the DNA data
+summary_stats = tool.get_summary_stats()
+print("DNA Summary Statistics:")
+for stat, value in summary_stats.items():
+    print(f"\t- {stat}: {value}")
+# Plot data for DNA sequences
+tool.plot_data("Sequence")  # Example plot for DNA
+
+# Load gene expression data from a file (uncomment to use)
+# tool.load_data("expression_data.csv", "Expression")
+# Plot data for gene expression (uncomment to use)
+# tool.plot_data("Gene1")  # Example plot for gene expression
