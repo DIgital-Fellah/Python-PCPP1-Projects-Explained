@@ -1,0 +1,119 @@
+class Qubit:
+  """
+  Represents a single quantum bit (qubit).
+  """
+  def __init__(self):
+    # Initialize the qubit in the |0> state represented by the complex number 1 + 0j
+    self.state = complex(1, 0)  # Initial state: |0>
+
+  def __repr__(self):
+    # Return a string representation of the qubit's state
+    return f"Qubit(state={self.state})"
+
+  def apply_gate(self, gate):
+    """
+    Applies a quantum gate to the qubit.
+
+    Args:
+      gate: A Gate object representing the gate to apply.
+    """
+    # Apply the gate to the qubit's current state and update the state
+    self.state = gate.apply(self.state)
+
+
+class Gate:
+  """
+  Represents a quantum gate operation.
+
+  Subclasses should implement the 'apply' method to define the gate's functionality.
+  """
+  def __init__(self, name):
+    # Initialize the gate with a name (e.g., "H" for Hadamard)
+    self.name = name
+
+  def apply(self, state):
+    """
+    Applies the gate to a qubit state.
+
+    Args:
+      state: A complex number representing the qubit state.
+
+    Returns:
+      The transformed state after applying the gate.
+    """
+    # This method should be overridden by subclasses to define specific gate behavior
+    raise NotImplementedError("Subclass must implement apply method")
+
+
+class HGate(Gate):
+  """
+  Hadamard gate: puts the qubit in a superposition of |0> and |1>.
+  """
+  def __init__(self):
+    # Initialize the Hadamard gate with the name "H"
+    super().__init__("H")
+
+  def apply(self, state):
+    # Apply the Hadamard transformation to the qubit state
+    # The Hadamard gate creates an equal superposition of |0> and |1>
+    return (complex(1/2, 0) * state) + (complex(1/2, 0) * state.conjugate())
+
+
+class XGate(Gate):
+  """
+  Pauli X gate: flips the qubit state (|0> to |1>, |1> to |0>).
+  """
+  def __init__(self):
+    # Initialize the Pauli X gate with the name "X"
+    super().__init__("X")
+
+  def apply(self, state):
+    # Apply the Pauli X transformation to the qubit state
+    # The Pauli X gate flips the state |0> to |1> and vice versa
+    return state.conjugate()
+
+
+class Circuit:
+  """
+  Represents a quantum circuit composed of qubits and gates.
+  """
+  def __init__(self, num_qubits):
+    # Initialize the circuit with a specified number of qubits
+    self.qubits = [Qubit() for _ in range(num_qubits)]
+    self.gates = []
+
+  def add_gate(self, gate, target_qubits):
+    """
+    Adds a gate to the circuit, targeting specific qubits.
+
+    Args:
+      gate: A Gate object representing the gate to be applied.
+      target_qubits: A list of integer indices representing the qubits the gate targets.
+    """
+    # Store the gate and its target qubits in the circuit's list of operations
+    self.gates.append((gate, target_qubits))
+
+  def run(self):
+    """
+    Executes the circuit on the qubits.
+    """
+    # Apply each gate to its target qubits
+    for gate, target_qubits in self.gates:
+      for qubit_index in target_qubits:
+        # Apply the gate to the state of the specified qubit
+        gate.apply(self.qubits[qubit_index].state)
+
+
+# Example usage
+circuit = Circuit(1)  # One qubit circuit
+
+# Apply Hadamard gate to the first qubit
+circuit.add_gate(HGate(), [0])
+
+# Run the circuit
+circuit.run()
+
+# Print the final state of the qubit (should be superposition)
+print(circuit.qubits[0])  # Output will show the qubit's state after applying the Hadamard gate
+
+
