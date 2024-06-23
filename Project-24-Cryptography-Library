@@ -1,0 +1,198 @@
+# Import necessary libraries for cryptographic operations.
+# For this example, we'll use the `cryptography` package for encryption
+# and `hashlib` for hashing.
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, hmac
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization
+
+class CryptoLibrary:
+    """
+    A basic cryptography library offering functionalities
+    for encryption, hashing, and digital signatures.
+    """
+
+    def __init__(self):
+        # Initialization method for the CryptoLibrary class.
+        # Currently, no special initialization is needed.
+        pass
+
+    def encrypt_symmetric(self, data, key):
+        """
+        Encrypts data using a symmetric key cipher (AES in this example).
+
+        Args:
+            data (bytes): The data to encrypt.
+            key (bytes): The secret key for encryption. Must be 32 bytes for AES-256.
+
+        Returns:
+            bytes: The encrypted data.
+        """
+        # Create a random initialization vector (IV)
+        iv = b'0000000000000000'  # For demonstration, use a fixed IV (not secure)
+        
+        # Create a Cipher object using AES algorithm in CBC mode
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        
+        # Create an encryptor object
+        encryptor = cipher.encryptor()
+        
+        # Encrypt the data. Note that the data must be padded to the block size.
+        padded_data = data.ljust(16 * ((len(data) + 15) // 16), b'\0')
+        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+        
+        return iv + encrypted_data  # Return IV and encrypted data together
+
+    def decrypt_symmetric(self, data, key):
+        """
+        Decrypts data encrypted with a symmetric key cipher (AES in this example).
+
+        Args:
+            data (bytes): The encrypted data.
+            key (bytes): The secret key for decryption. Must be 32 bytes for AES-256.
+
+        Returns:
+            bytes: The decrypted data.
+        """
+        # Extract the initialization vector (IV) from the data
+        iv = data[:16]
+        
+        # Extract the actual encrypted data
+        encrypted_data = data[16:]
+        
+        # Create a Cipher object using AES algorithm in CBC mode
+        cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+        
+        # Create a decryptor object
+        decryptor = cipher.decryptor()
+        
+        # Decrypt the data
+        decrypted_padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
+        
+        # Remove padding from the decrypted data
+        decrypted_data = decrypted_padded_data.rstrip(b'\0')
+        
+        return decrypted_data
+
+    def hash(self, data, algorithm="sha256"):
+        """
+        Generates a cryptographic hash of the data.
+
+        Args:
+            data (bytes): The data to hash.
+            algorithm (str, optional): The hashing algorithm to use.
+                Defaults to "sha256".
+
+        Returns:
+            bytes: The hash digest of the data.
+        """
+        # Create a hash object based on the specified algorithm
+        if algorithm == "sha256":
+            digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        else:
+            raise ValueError("Unsupported algorithm")
+
+        # Update the hash object with the data
+        digest.update(data)
+        
+        # Finalize the hash and return the digest
+        return digest.finalize()
+
+    def sign(self, data, private_key):
+        """
+        Signs data using a private key.
+
+        Args:
+            data (bytes): The data to sign.
+            private_key (object): The private key for signing.
+
+        Returns:
+            bytes: The signature of the data.
+        """
+        # Sign the data using the private key with RSA and PSS padding
+        signature = private_key.sign(
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return signature
+
+    def verify(self, data, signature, public_key):
+        """
+        Verifies the signature of data using a public key.
+
+        Args:
+            data (bytes): The data to verify.
+            signature (bytes): The signature to validate.
+            public_key (object): The public key for verification.
+
+        Returns:
+            bool: True if the signature is valid, False otherwise.
+        """
+        try:
+            # Verify the signature using the public key with RSA and PSS padding
+            public_key.verify(
+                signature,
+                data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return True
+        except Exception:
+            # If verification fails, an exception will be thrown
+            return False
+
+
+# Example usage of the CryptoLibrary class
+
+# Create an instance of the CryptoLibrary class
+crypto = CryptoLibrary()
+
+# Define a message to be encrypted
+message = b"This is a secret message."
+
+# Define a secret key for encryption (must be 32 bytes for AES-256)
+key = b"your_32_byte_secret_key__"
+
+# Encrypt the message using symmetric encryption
+encrypted_data = crypto.encrypt_symmetric(message, key)
+
+# Decrypt the encrypted message using symmetric decryption
+decrypted_data = crypto.decrypt_symmetric(encrypted_data, key)
+
+# Print the original, encrypted, and decrypted messages
+print(f"Original message: {message}")
+print(f"Encrypted data: {encrypted_data}")
+print(f"Decrypted message: {decrypted_data}")  # Should match original message
+
+# Generate a hash of the message
+hashed_message = crypto.hash(message)
+print(f"Hashed message: {hashed_message}")
+
+# Generate a pair of RSA keys for digital signatures
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=2048,
+    backend=default_backend()
+)
+public_key = private_key.public_key()
+
+# Sign the message using the private key
+signature = crypto.sign(message, private_key)
+
+# Verify the signature using the public key
+is_valid_signature = crypto.verify(message, signature, public_key)
+print(f"Is the signature valid? {is_valid_signature}")
+
+# This example demonstrates encryption, decryption, hashing, and digital signatures using the CryptoLibrary class.
+# Each method is provided with detailed comments to help beginners understand the implementation.
+# Note: In real applications, ensure to use proper key management and secure random IVs.
+
+# OVER
